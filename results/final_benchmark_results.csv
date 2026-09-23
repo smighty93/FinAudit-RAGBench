@@ -1,0 +1,53 @@
+Question ID,Category,Question,Reference Answer,Naive Answer,Table-Aware Answer,Naive Numerical Accuracy,Table-Aware Numerical Accuracy,Naive Source Recall@5,Table-Aware Source Recall@5,Naive MRR,Table-Aware MRR,Naive Latency,Table-Aware Latency
+Q01,total_revenue,What was Apple's total net sales for fiscal year 2025?,"$416,161 million","For fiscal year 2025 (Twelve Months Ended September 27, 2025), Apple's total net sales were **$416,161 million**.
+
+Source: Page 1","For the fiscal year (twelve months ended September 27, 2025), Apple's total net sales were $416,161 million.
+
+Source Page: 1",1.0,1.0,1.0,1.0,1.0,0.5,50.8579,43.9614
+Q02,product_revenue,What were Apple's product net sales for fiscal year 2025?,"$307,003 million","For fiscal year 2025, Apple's product net sales were **$73,716 million** for the three months ended September 27, 2025, and **$307,003 million** for the twelve months ended September 27, 2025.
+
+Source Page: 1","For fiscal year 2025 (Twelve Months Ended September 27, 2025), Apple's product net sales were $307,003 million. Additionally, for the three months ended September 27, 2025, product net sales were $73,716 million.
+
+Supporting Source Page: Page 5",1.0,1.0,1.0,1.0,0.25,0.25,31.4658,15.4927
+Q03,services_revenue,What were Apple's services net sales for fiscal year 2025?,"$109,158 million","For fiscal year 2025 (Twelve Months Ended September 27, 2025), Apple's services net sales were $109,158 million. (For the three months ended September 27, 2025, services net sales were $28,750 million).
+
+Supporting Source Page: Page 1","For fiscal year 2025 (Twelve Months Ended September 27, 2025), Apple's services net sales were $109,158 million. (For the three months ended September 27, 2025, services net sales were $28,750 million.)
+
+Source Page: Page 5",1.0,1.0,1.0,1.0,0.25,0.25,34.4426,24.1015
+Q04,cost_of_sales,What was Apple's total cost of sales for fiscal year 2025?,"$220,960 million","For the fiscal year 2025 (Twelve Months Ended September 27, 2025), Apple's total cost of sales was $220,960 million.
+
+Source: Page 1","For fiscal year 2025 (Twelve Months Ended September 27, 2025), Apple's total cost of sales was $220,960 million.
+
+Supporting Source Page: Page 5",1.0,1.0,1.0,1.0,0.25,0.25,17.0085,16.9518
+Q05,gross_margin,What was Apple's gross margin for fiscal year 2025?,"$195,201 million","For fiscal year 2025 (Twelve Months Ended September 27, 2025), Apple's gross margin was **$195,201 million**. 
+
+(Note: For the three months ended September 27, 2025, the gross margin was **$48,341 million**.)
+
+Supporting source page: Page 1","The provided context does not contain enough information to answer this question.
+
+Source: Page 4",1.0,0.0,1.0,1.0,0.25,0.25,50.0009,37.0012
+Q06,research_and_development,What was Apple's research and development expense for fiscal year 2025?,"$34,550 million","For fiscal year 2025 (Twelve Months Ended September 27, 2025), Apple's research and development expense was **$34,550 million**. For the three months ended September 27, 2025, the research and development expense was **$8,866 million**.
+
+Supporting Source Page: Page 1","For fiscal year 2025 (Twelve Months Ended September 27, 2025), Apple's research and development expense was $34,550 million. For the three months ended September 27, 2025, the research and development expense was $8,866 million.
+
+Source Page: 5",1.0,1.0,1.0,1.0,0.25,0.3333333333333333,35.7059,39.2541
+Q07,operating_expense,"What was Apple's selling, general and administrative expense for fiscal year 2025?","$27,601 million","For fiscal year 2025 (Twelve Months Ended September 27, 2025), Apple's selling, general and administrative expense was $27,601 million.
+
+Source Page: Page 1","For fiscal year 2025 (Twelve Months Ended September 27, 2025), Apple's selling, general and administrative expense was $27,601 million. For the three months ended September 27, 2025, it was $7,048 million.
+
+Sources: Page 1",1.0,1.0,1.0,1.0,0.25,0.25,65.0249,40.4045
+Q08,operating_income,What was Apple's operating income for fiscal year 2025?,"$133,050 million","For fiscal year 2025 (Twelve Months Ended September 27, 2025), Apple's operating income was $133,050 million. For the three months ended September 27, 2025, the operating income was $32,427 million.
+
+Sources: Page 1","The provided context does not contain enough information to answer this question.
+
+Source Page(s): None",1.0,0.0,1.0,1.0,0.25,0.2,33.6468,32.0719
+Q09,net_income,What was Apple's net income for fiscal year 2025?,"$112,010 million","The provided context does not contain enough information to answer this question.
+
+Source(s): None","The provided context does not contain enough information to answer this question.
+
+Source(s): Page 4",0.0,0.0,1.0,1.0,0.25,0.2,24.9653,58.5483
+Q10,earnings_per_share,What was Apple's diluted earnings per share for fiscal year 2025?,$7.46,"The provided context does not contain enough information to answer this question (it only provides data for fiscal year 2024, not 2025).
+
+Source: Page 4","The provided context does not contain enough information to answer this question.
+
+Source Page: None",0.0,0.0,1.0,1.0,0.25,0.25,26.1913,44.995

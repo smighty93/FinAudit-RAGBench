@@ -1,0 +1,102 @@
+[
+  {
+    "id": "Q01",
+    "question": "What was Apple's total net sales for fiscal year 2025?",
+    "reference_answer": "$416,161 million",
+    "expected_value": 416161,
+    "unit": "million USD",
+    "year": 2025,
+    "source_page": 1,
+    "category": "total_revenue"
+  },
+  {
+    "id": "Q02",
+    "question": "What were Apple's product net sales for fiscal year 2025?",
+    "reference_answer": "$307,003 million",
+    "expected_value": 307003,
+    "unit": "million USD",
+    "year": 2025,
+    "source_page": 1,
+    "category": "product_revenue"
+  },
+  {
+    "id": "Q03",
+    "question": "What were Apple's services net sales for fiscal year 2025?",
+    "reference_answer": "$109,158 million",
+    "expected_value": 109158,
+    "unit": "million USD",
+    "year": 2025,
+    "source_page": 1,
+    "category": "services_revenue"
+  },
+  {
+    "id": "Q04",
+    "question": "What was Apple's total cost of sales for fiscal year 2025?",
+    "reference_answer": "$220,960 million",
+    "expected_value": 220960,
+    "unit": "million USD",
+    "year": 2025,
+    "source_page": 1,
+    "category": "cost_of_sales"
+  },
+  {
+    "id": "Q05",
+    "question": "What was Apple's gross margin for fiscal year 2025?",
+    "reference_answer": "$195,201 million",
+    "expected_value": 195201,
+    "unit": "million USD",
+    "year": 2025,
+    "source_page": 1,
+    "category": "gross_margin"
+  },
+  {
+    "id": "Q06",
+    "question": "What was Apple's research and development expense for fiscal year 2025?",
+    "reference_answer": "$34,550 million",
+    "expected_value": 34550,
+    "unit": "million USD",
+    "year": 2025,
+    "source_page": 1,
+    "category": "research_and_development"
+  },
+  {
+    "id": "Q07",
+    "question": "What was Apple's selling, general and administrative expense for fiscal year 2025?",
+    "reference_answer": "$27,601 million",
+    "expected_value": 27601,
+    "unit": "million USD",
+    "year": 2025,
+    "source_page": 1,
+    "category": "operating_expense"
+  },
+  {
+    "id": "Q08",
+    "question": "What was Apple's operating income for fiscal year 2025?",
+    "reference_answer": "$133,050 million",
+    "expected_value": 133050,
+    "unit": "million USD",
+    "year": 2025,
+    "source_page": 1,
+    "category": "operating_income"
+  },
+  {
+    "id": "Q09",
+    "question": "What was Apple's net income for fiscal year 2025?",
+    "reference_answer": "$112,010 million",
+    "expected_value": 112010,
+    "unit": "million USD",
+    "year": 2025,
+    "source_page": 2,
+    "category": "net_income"
+  },
+  {
+    "id": "Q10",
+    "question": "What was Apple's diluted earnings per share for fiscal year 2025?",
+    "reference_answer": "$7.46",
+    "expected_value": 7.46,
+    "unit": "USD per share",
+    "year": 2025,
+    "source_page": 2,
+    "category": "earnings_per_share"
+  }
+]

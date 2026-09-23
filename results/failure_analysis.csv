@@ -1,0 +1,23 @@
+Question ID,Question,Reference Answer,Naive Answer,Table-Aware Answer,Naive Result,Table-Aware Result,Naive MRR,Table-Aware MRR
+Q05,What was Apple's gross margin for fiscal year 2025?,"$195,201 million","For fiscal year 2025 (Twelve Months Ended September 27, 2025), Apple's gross margin was **$195,201 million**. 
+
+(Note: For the three months ended September 27, 2025, the gross margin was **$48,341 million**.)
+
+Supporting source page: Page 1","The provided context does not contain enough information to answer this question.
+
+Source: Page 4",Correct,Failed,0.25,0.25
+Q08,What was Apple's operating income for fiscal year 2025?,"$133,050 million","For fiscal year 2025 (Twelve Months Ended September 27, 2025), Apple's operating income was $133,050 million. For the three months ended September 27, 2025, the operating income was $32,427 million.
+
+Sources: Page 1","The provided context does not contain enough information to answer this question.
+
+Source Page(s): None",Correct,Failed,0.25,0.2
+Q09,What was Apple's net income for fiscal year 2025?,"$112,010 million","The provided context does not contain enough information to answer this question.
+
+Source(s): None","The provided context does not contain enough information to answer this question.
+
+Source(s): Page 4",Failed,Failed,0.25,0.2
+Q10,What was Apple's diluted earnings per share for fiscal year 2025?,$7.46,"The provided context does not contain enough information to answer this question (it only provides data for fiscal year 2024, not 2025).
+
+Source: Page 4","The provided context does not contain enough information to answer this question.
+
+Source Page: None",Failed,Failed,0.25,0.25

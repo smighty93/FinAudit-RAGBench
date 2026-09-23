@@ -1,0 +1,5 @@
+Metric,Naive RAG,Table-Aware RAG
+Numerical Accuracy,0.8,0.6
+Source-Page Recall@5,1.0,1.0
+MRR,0.325,0.2733333333333333
+Average Latency (seconds),36.93099,35.27824
