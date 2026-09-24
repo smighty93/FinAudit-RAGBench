@@ -1,10 +1,25 @@
+
 import json
+import tempfile
+import time
 from pathlib import Path
 
 import pandas as pd
 import plotly.express as px
 import streamlit as st
+from sentence_transformers import SentenceTransformer
+from google import genai
 
+from src.document_processor import (
+    create_naive_chunks,
+    create_table_aware_chunks
+)
+from src.retrieval import FAISSRetriever
+
+
+# ============================================================
+# PAGE CONFIGURATION
+# ============================================================
 
 st.set_page_config(
     page_title="FinAudit RAGBench",
@@ -12,15 +27,17 @@ st.set_page_config(
     layout="wide"
 )
 
-
 BASE_DIR = Path(__file__).resolve().parent
 RESULTS_DIR = BASE_DIR / "results"
 
 METRICS_FILE = RESULTS_DIR / "final_metrics.csv"
 BENCHMARK_FILE = RESULTS_DIR / "final_benchmark_results.csv"
 FAILURE_FILE = RESULTS_DIR / "failure_analysis.csv"
-RAW_RESULTS_FILE = RESULTS_DIR / "benchmark_results.json"
 
+
+# ============================================================
+# LOAD EXISTING BENCHMARK DATA
+# ============================================================
 
 @st.cache_data
 def load_metrics():
@@ -49,17 +66,127 @@ failure_df = load_failures()
 
 
 # ============================================================
+# LOAD EMBEDDING MODEL
+# ============================================================
+
+@st.cache_resource
+def load_embedding_model():
+    return SentenceTransformer(
+        "sentence-transformers/all-MiniLM-L6-v2"
+    )
+
+
+# ============================================================
+# GEMINI CLIENT
+# ============================================================
+
+@st.cache_resource
+def load_gemini_client():
+    try:
+        from google.colab import userdata
+
+        api_key = userdata.get("GOOGLE_API_KEY")
+
+    except Exception:
+
+        import os
+
+        api_key = os.environ.get("GOOGLE_API_KEY")
+
+    if not api_key:
+        return None
+
+    return genai.Client(api_key=api_key)
+
+
+# ============================================================
+# GENERATION
+# ============================================================
+
+def generate_answer(
+    client,
+    question,
+    retrieved_chunks,
+    approach_name
+):
+
+    context_parts = []
+
+    for i, chunk in enumerate(
+        retrieved_chunks,
+        start=1
+    ):
+
+        context_parts.append(
+            f"""
+SOURCE {i}
+Document: {chunk.get("document", "Unknown")}
+Page: {chunk.get("page", "Unknown")}
+Chunk Type: {chunk.get("chunk_type", "Unknown")}
+Retrieval Score: {chunk.get("score", 0):.4f}
+
+{chunk.get("text", "")}
+"""
+        )
+
+    context = "\n".join(context_parts)
+
+    prompt = f"""
+You are a financial document question-answering assistant
+inside the FinAudit RAGBench evaluation platform.
+
+RAG APPROACH:
+{approach_name}
+
+Answer the user's question using ONLY the supplied financial
+document context.
+
+RULES:
+
+1. Do not use outside knowledge.
+2. Do not invent financial values.
+3. Preserve financial units exactly.
+4. Pay close attention to fiscal years and reporting periods.
+5. If the answer cannot be established from the supplied
+   context, say:
+   "The provided context does not contain enough information
+   to answer this question."
+6. Keep the answer concise.
+7. Clearly state the financial value when available.
+8. Identify the supporting page number or page numbers.
+9. Do not create a reference answer that is not present in
+   the supplied document.
+
+USER QUESTION:
+{question}
+
+RETRIEVED FINANCIAL CONTEXT:
+{context}
+
+ANSWER:
+"""
+
+    response = client.models.generate_content(
+        model="gemini-3.6-flash",
+        contents=prompt
+    )
+
+    return response.text
+
+
+# ============================================================
 # SIDEBAR
 # ============================================================
 
-st.sidebar.title("FinAudit RAGBench")
+st.sidebar.title("📊 FinAudit RAGBench")
 
 st.sidebar.markdown(
     """
 **Financial RAG Benchmarking Platform**
 
-Compare Naive RAG and Table-Aware RAG
-on financial question answering.
+Evaluate financial RAG systems and
+perform interactive document-based
+financial question answering.
 """
 )
 
@@ -68,6 +195,7 @@ page = st.sidebar.radio(
     [
         "Overview",
         "Benchmark Results",
+        "Interactive Q&A",
         "Query Analysis",
         "Failure Analysis"
     ]
@@ -89,17 +217,26 @@ if page == "Overview":
 
     st.markdown(
         """
-FinAudit RAGBench evaluates the reliability of RAG systems
-when answering questions from financial documents.
+FinAudit RAGBench evaluates the reliability of
+Retrieval-Augmented Generation systems when answering
+questions from financial documents.
 
-The current experiment compares two approaches:
+The platform supports two complementary workflows:
 
-- **Naive RAG**
-- **Table-Aware RAG**
+**Benchmark Mode**
+- Controlled financial benchmark
+- Reference answers
+- Numerical accuracy
+- Source-page recall
+- MRR
+- Latency
+- Failure analysis
 
-Both approaches use the same financial benchmark and are
-evaluated using numerical accuracy, source-page recall,
-MRR, and latency.
+**Interactive Q&A Mode**
+- Upload a financial PDF
+- Ask financial questions
+- Compare Naive RAG and Table-Aware RAG
+- Inspect retrieved evidence and source pages
 """
     )
 
@@ -129,19 +266,19 @@ Financial Document
         ↓
 Document Processing
         ↓
-Chunking
+Naive / Table-Aware Chunking
         ↓
-Embeddings
+Sentence Embeddings
         ↓
 FAISS Vector Search
         ↓
 Context Retrieval
         ↓
-LLM
+Gemini LLM
         ↓
 Generated Answer
         ↓
-Evaluation
+Evidence / Evaluation
         ↓
 Streamlit Dashboard
 """,
@@ -166,7 +303,7 @@ Streamlit Dashboard
 
     with col3:
         st.metric(
-            "Document",
+            "Benchmark Document",
             "Apple Financial Report"
         )
 
@@ -179,9 +316,10 @@ Streamlit Dashboard
             "Retrieval-Augmented Generation",
             "Text Embeddings",
             "FAISS Vector Search",
-            "Prompt-based LLM Generation",
+            "Gemini LLM Generation",
             "Financial Document Processing",
             "RAG Evaluation",
+            "Interactive Financial Q&A",
             "Streamlit Visualization"
         ],
         "Status": [
@@ -221,6 +359,7 @@ elif page == "Benchmark Results":
         col1, col2 = st.columns(2)
 
         with col1:
+
             st.metric(
                 "Naive Numerical Accuracy",
                 f"{metric_index.loc['Numerical Accuracy', 'Naive RAG']:.0%}"
@@ -232,6 +371,7 @@ elif page == "Benchmark Results":
             )
 
         with col2:
+
             st.metric(
                 "Table-Aware Numerical Accuracy",
                 f"{metric_index.loc['Numerical Accuracy', 'Table-Aware RAG']:.0%}"
@@ -243,8 +383,6 @@ elif page == "Benchmark Results":
             )
 
         st.divider()
-
-        # Numerical accuracy
 
         accuracy_df = pd.DataFrame({
             "Approach": [
@@ -277,8 +415,6 @@ elif page == "Benchmark Results":
             use_container_width=True
         )
 
-        # MRR
-
         mrr_df = pd.DataFrame({
             "Approach": [
                 "Naive RAG",
@@ -303,8 +439,6 @@ elif page == "Benchmark Results":
             fig,
             use_container_width=True
         )
-
-        # Latency
 
         latency_df = pd.DataFrame({
             "Approach": [
@@ -371,16 +505,334 @@ elif page == "Benchmark Results":
 
 
 # ============================================================
+# INTERACTIVE Q&A
+# ============================================================
+
+elif page == "Interactive Q&A":
+
+    st.title("🔎 Interactive Financial Q&A")
+
+    st.markdown(
+        """
+Upload a financial PDF and ask questions about its contents.
+
+The system runs the same question through:
+
+- **Naive RAG**
+- **Table-Aware RAG**
+
+The generated answers can then be compared together with
+the retrieved evidence and source pages.
+"""
+    )
+
+    uploaded_file = st.file_uploader(
+        "Upload a financial PDF",
+        type=["pdf"]
+    )
+
+    if uploaded_file is not None:
+
+        st.success(
+            f"Uploaded: {uploaded_file.name}"
+        )
+
+        question = st.text_area(
+            "Enter your financial question",
+            placeholder=(
+                "Example: What was the company's total revenue "
+                "for fiscal year 2025?"
+            )
+        )
+
+        top_k = st.slider(
+            "Number of retrieved chunks",
+            min_value=3,
+            max_value=10,
+            value=5
+        )
+
+        if st.button(
+            "🚀 Analyze Question",
+            type="primary"
+        ):
+
+            if not question.strip():
+
+                st.warning(
+                    "Please enter a question."
+                )
+                st.stop()
+
+            client = load_gemini_client()
+
+            if client is None:
+
+                st.error(
+                    "GOOGLE_API_KEY was not found. "
+                    "Configure the Colab secret before using "
+                    "Interactive Q&A."
+                )
+                st.stop()
+
+            embedding_model = load_embedding_model()
+
+            with tempfile.TemporaryDirectory() as temp_dir:
+
+                pdf_path = Path(temp_dir) / uploaded_file.name
+
+                pdf_path.write_bytes(
+                    uploaded_file.getbuffer()
+                )
+
+                progress = st.progress(0)
+
+                st.info(
+                    "Extracting document and creating RAG indexes..."
+                )
+
+                naive_chunks = create_naive_chunks(
+                    str(pdf_path)
+                )
+
+                progress.progress(25)
+
+                table_chunks = create_table_aware_chunks(
+                    str(pdf_path)
+                )
+
+                progress.progress(50)
+
+                naive_retriever = FAISSRetriever(
+                    embedding_model
+                )
+
+                naive_retriever.build_index(
+                    naive_chunks
+                )
+
+                progress.progress(70)
+
+                table_retriever = FAISSRetriever(
+                    embedding_model
+                )
+
+                table_retriever.build_index(
+                    table_chunks
+                )
+
+                progress.progress(85)
+
+                # ------------------------------------------------
+                # NAIVE RAG
+                # ------------------------------------------------
+
+                naive_start = time.perf_counter()
+
+                naive_results = naive_retriever.retrieve(
+                    question,
+                    top_k=top_k
+                )
+
+                naive_answer = generate_answer(
+                    client,
+                    question,
+                    naive_results,
+                    "Naive RAG"
+                )
+
+                naive_latency = (
+                    time.perf_counter()
+                    - naive_start
+                )
+
+                # ------------------------------------------------
+                # TABLE-AWARE RAG
+                # ------------------------------------------------
+
+                table_start = time.perf_counter()
+
+                table_results = table_retriever.retrieve(
+                    question,
+                    top_k=top_k
+                )
+
+                table_answer = generate_answer(
+                    client,
+                    question,
+                    table_results,
+                    "Table-Aware RAG"
+                )
+
+                table_latency = (
+                    time.perf_counter()
+                    - table_start
+                )
+
+                progress.progress(100)
+
+            st.success(
+                "Analysis completed."
+            )
+
+            st.divider()
+
+            col1, col2 = st.columns(2)
+
+            # ----------------------------------------------------
+            # NAIVE RESULT
+            # ----------------------------------------------------
+
+            with col1:
+
+                st.subheader("Naive RAG")
+
+                st.write(
+                    naive_answer
+                )
+
+                st.metric(
+                    "Latency",
+                    f"{naive_latency:.2f} seconds"
+                )
+
+                st.markdown(
+                    "**Retrieved Source Pages**"
+                )
+
+                naive_pages = sorted(
+                    set(
+                        str(chunk["page"])
+                        for chunk in naive_results
+                    )
+                )
+
+                st.write(
+                    ", ".join(naive_pages)
+                )
+
+                with st.expander(
+                    "View Retrieved Evidence"
+                ):
+
+                    for i, chunk in enumerate(
+                        naive_results,
+                        start=1
+                    ):
+
+                        st.markdown(
+                            f"""
+**Source {i}**
+
+Page: {chunk["page"]}
+
+Chunk Type: {chunk["chunk_type"]}
+
+Retrieval Score:
+`{chunk["score"]:.4f}`
+"""
+                        )
+
+                        st.text(
+                            chunk["text"]
+                        )
+
+                        st.divider()
+
+            # ----------------------------------------------------
+            # TABLE-AWARE RESULT
+            # ----------------------------------------------------
+
+            with col2:
+
+                st.subheader("Table-Aware RAG")
+
+                st.write(
+                    table_answer
+                )
+
+                st.metric(
+                    "Latency",
+                    f"{table_latency:.2f} seconds"
+                )
+
+                st.markdown(
+                    "**Retrieved Source Pages**"
+                )
+
+                table_pages = sorted(
+                    set(
+                        str(chunk["page"])
+                        for chunk in table_results
+                    )
+                )
+
+                st.write(
+                    ", ".join(table_pages)
+                )
+
+                with st.expander(
+                    "View Retrieved Evidence"
+                ):
+
+                    for i, chunk in enumerate(
+                        table_results,
+                        start=1
+                    ):
+
+                        st.markdown(
+                            f"""
+**Source {i}**
+
+Page: {chunk["page"]}
+
+Chunk Type: {chunk["chunk_type"]}
+
+Retrieval Score:
+`{chunk["score"]:.4f}`
+"""
+                        )
+
+                        st.text(
+                            chunk["text"]
+                        )
+
+                        st.divider()
+
+            st.divider()
+
+            st.subheader(
+                "Evaluation Interpretation"
+            )
+
+            st.info(
+                """
+Interactive Q&A does not calculate numerical accuracy because
+the uploaded document does not automatically provide a verified
+reference answer for the user's question.
+
+Instead, this mode exposes the generated answer, retrieved
+evidence, source pages, retrieval scores, and latency.
+
+Formal numerical accuracy remains available in Benchmark Mode,
+where verified reference answers are available.
+"""
+            )
+
+
+# ============================================================
 # QUERY ANALYSIS
 # ============================================================
 
 elif page == "Query Analysis":
 
-    st.title("🔎 Query Analysis")
+    st.title("🔎 Benchmark Query Analysis")
 
     if benchmark_df.empty:
 
-        st.error("Benchmark results not found.")
+        st.error(
+            "Benchmark results not found."
+        )
 
     else:
 
@@ -393,10 +845,13 @@ elif page == "Query Analysis":
             benchmark_df["Question ID"] == selected_id
         ].iloc[0]
 
-        st.header(selected["Question"])
+        st.header(
+            selected["Question"]
+        )
 
         st.markdown(
-            f"**Reference Answer:** {selected['Reference Answer']}"
+            f"**Reference Answer:** "
+            f"{selected['Reference Answer']}"
         )
 
         st.divider()
@@ -405,7 +860,9 @@ elif page == "Query Analysis":
 
         with col1:
 
-            st.subheader("Naive RAG")
+            st.subheader(
+                "Naive RAG"
+            )
 
             st.write(
                 selected["Naive Answer"]
@@ -428,7 +885,9 @@ elif page == "Query Analysis":
 
         with col2:
 
-            st.subheader("Table-Aware RAG")
+            st.subheader(
+                "Table-Aware RAG"
+            )
 
             st.write(
                 selected["Table-Aware Answer"]
@@ -478,10 +937,13 @@ elif page == "Failure Analysis":
             ):
 
                 st.markdown(
-                    f"**Reference:** {row['Reference Answer']}"
+                    f"**Reference:** "
+                    f"{row['Reference Answer']}"
                 )
 
-                st.subheader("Naive RAG")
+                st.subheader(
+                    "Naive RAG"
+                )
 
                 st.write(
                     row["Naive Answer"]
@@ -491,7 +953,9 @@ elif page == "Failure Analysis":
                     f"Result: {row['Naive Result']}"
                 )
 
-                st.subheader("Table-Aware RAG")
+                st.subheader(
+                    "Table-Aware RAG"
+                )
 
                 st.write(
                     row["Table-Aware Answer"]
@@ -503,7 +967,9 @@ elif page == "Failure Analysis":
 
         st.divider()
 
-        st.subheader("Observed Failure Pattern")
+        st.subheader(
+            "Observed Failure Pattern"
+        )
 
         st.info(
             """
