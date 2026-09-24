@@ -1,3 +1,4 @@
+import sys
 import time
 import json
 import tempfile
@@ -9,12 +10,17 @@ import streamlit as st
 from sentence_transformers import SentenceTransformer
 from google import genai
 
+BASE_DIR = Path(__file__).resolve().parent
+
+if str(BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(BASE_DIR))
+
 from src.document_processor import (
     create_naive_chunks,
     create_table_aware_chunks
 )
-from src.retrieval import FAISSRetriever
 
+from src.retrieval import FAISSRetriever
 
 # ============================================================
 # PAGE CONFIGURATION
