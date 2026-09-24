@@ -444,7 +444,7 @@ def load_chunks(path: str) -> List[Dict]:
             texts,
             convert_to_numpy=True,
             show_progress_bar=True
-        )
+        
 
         embeddings = embeddings.astype("float32")
 
