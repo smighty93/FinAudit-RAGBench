@@ -102,7 +102,6 @@ def load_gemini_client():
 # ============================================================
 # GENERATION
 # ============================================================
-
 def generate_answer(
     client,
     question,
@@ -112,22 +111,40 @@ def generate_answer(
 
     context_parts = []
 
+    # Limit the amount of context sent to Gemini.
+    # Retrieved evidence is still available separately in the UI.
+    max_context_chars = 12000
+    current_chars = 0
+
     for i, chunk in enumerate(
         retrieved_chunks,
         start=1
     ):
 
-        context_parts.append(
-            f"""
+        chunk_text = chunk.get("text", "")
+
+        source_text = f"""
 SOURCE {i}
 Document: {chunk.get("document", "Unknown")}
 Page: {chunk.get("page", "Unknown")}
 Chunk Type: {chunk.get("chunk_type", "Unknown")}
 Retrieval Score: {chunk.get("score", 0):.4f}
 
-{chunk.get("text", "")}
+{chunk_text}
 """
-        )
+
+        if current_chars + len(source_text) > max_context_chars:
+            remaining = max_context_chars - current_chars
+
+            if remaining > 300:
+                context_parts.append(
+                    source_text[:remaining]
+                )
+
+            break
+
+        context_parts.append(source_text)
+        current_chars += len(source_text)
 
     context = "\n".join(context_parts)
 
@@ -166,12 +183,23 @@ RETRIEVED FINANCIAL CONTEXT:
 ANSWER:
 """
 
-    response = client.models.generate_content(
-        model="gemini-3.6-flash",
-        contents=prompt
-    )
+    try:
 
-    return response.text
+        response = client.models.generate_content(
+            model="gemini-3.6-flash",
+            contents=prompt
+        )
+
+        if not response or not response.text:
+            return "Gemini returned an empty response."
+
+        return response.text.strip()
+
+    except Exception as e:
+
+        return (
+            f"Gemini API error: {type(e).__name__}: {str(e)}"
+        )
 
 
 # ============================================================
