@@ -440,7 +440,7 @@ def load_chunks(path: str) -> List[Dict]:
 
         return candidates[:top_k]
 
-    def save_index(        embeddings = self.embedding_model.encode(
+    def save_index(embeddings = self.embedding_model.encode)
             texts,
             convert_to_numpy=True,
             show_progress_bar=True
