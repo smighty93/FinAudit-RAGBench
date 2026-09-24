@@ -251,7 +251,7 @@ def load_chunks(path: str) -> List[Dict]:
         encoding="utf-8"
     ) as f:
 
-        return json.load(f)        ]
+        return json.load(f)        
 
         embeddings = self.embedding_model.encode(
             texts,
