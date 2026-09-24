@@ -163,7 +163,7 @@ RETRIEVED FINANCIAL CONTEXT:
 ANSWER:
 """
 
-    max_attempts = 3
+    max_attempts = 5
 
     for attempt in range(max_attempts):
 
@@ -190,7 +190,7 @@ ANSWER:
 
                 if attempt < max_attempts - 1:
 
-                    wait_time = 2 ** attempt
+                    wait_time = 5 * (attempt + 1)
                     time.sleep(wait_time)
                     continue
 
