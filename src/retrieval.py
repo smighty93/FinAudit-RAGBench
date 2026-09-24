@@ -1,7 +1,7 @@
-
 from pathlib import Path
-from typing import List, Dict, Tuple
+from typing import List, Dict
 import json
+import re
 
 import numpy as np
 import faiss
@@ -10,17 +10,28 @@ import faiss
 class FAISSRetriever:
     """
     FAISS-based semantic retriever for FinAudit RAGBench.
+
+    The retriever uses:
+    1. Dense semantic similarity
+    2. Lightweight query-term matching
+    3. Score-based reranking
+
+    This remains a Naive RAG retriever because it does not
+    explicitly parse or reconstruct financial tables.
     """
 
     def __init__(self, embedding_model):
         self.embedding_model = embedding_model
         self.index = None
         self.chunks = []
+        self.embeddings = None
 
     def build_index(self, chunks: List[Dict]):
         """
-        Create embeddings and build a FAISS inner-product index.
-        Embeddings are normalized, making inner product equivalent
+        Create normalized embeddings and build a FAISS
+        inner-product index.
+
+        Inner product on normalized embeddings is equivalent
         to cosine similarity.
         """
 
@@ -30,11 +41,184 @@ class FAISSRetriever:
         self.chunks = chunks
 
         texts = [
-            chunk["text"]
+            str(chunk.get("text", ""))
             for chunk in chunks
         ]
 
         embeddings = self.embedding_model.encode(
+            texts,
+            convert_to_numpy=True,
+            show_progress_bar=True
+        )
+
+        embeddings = embeddings.astype("float32")
+
+        faiss.normalize_L2(embeddings)
+
+        self.embeddings = embeddings
+
+        dimension = embeddings.shape[1]
+
+        self.index = faiss.IndexFlatIP(dimension)
+
+        self.index.add(embeddings)
+
+        return embeddings
+
+    @staticmethod
+    def _tokenize(text: str) -> set:
+        """
+        Convert text into normalized word tokens.
+        """
+
+        return set(
+            re.findall(
+                r"\b[a-zA-Z0-9]+\b",
+                text.lower()
+            )
+        )
+
+    @staticmethod
+    def _query_terms(query: str) -> set:
+        """
+        Extract useful terms from the query.
+
+        Common stopwords are removed so that important
+        financial terms receive more weight.
+        """
+
+        stopwords = {
+            "what",
+            "was",
+            "were",
+            "is",
+            "are",
+            "the",
+            "a",
+            "an",
+            "of",
+            "for",
+            "in",
+            "on",
+            "to",
+            "and",
+            "or",
+            "with",
+            "from",
+            "how",
+            "much",
+            "did",
+            "does",
+            "company"
+        }
+
+        tokens = FAISSRetriever._tokenize(query)
+
+        return {
+            token
+            for token in tokens
+            if token not in stopwords
+        }
+
+    def retrieve(
+        self,
+        query: str,
+        top_k: int = 5
+    ) -> List[Dict]:
+        """
+        Retrieve relevant chunks using semantic similarity
+        followed by lightweight lexical reranking.
+
+        This improves retrieval for questions containing
+        important financial terms, fiscal years, and
+        numerical concepts without turning the retriever
+        into a table parser.
+        """
+
+        if self.index is None:
+            raise RuntimeError(
+                "FAISS index has not been built."
+            )
+
+        if not query or not query.strip():
+            return []
+
+        total_chunks = len(self.chunks)
+
+        # Retrieve a larger candidate pool first.
+        candidate_k = min(
+            max(top_k * 4, 10),
+            total_chunks
+        )
+
+        query_embedding = self.embedding_model.encode(
+            [query],
+            convert_to_numpy=True
+        ).astype("float32")
+
+        faiss.normalize_L2(query_embedding)
+
+        scores, indices = self.index.search(
+            query_embedding,
+            candidate_k
+        )
+
+        query_terms = self._query_terms(query)
+
+        candidates = []
+
+        for score, index in zip(
+            scores[0],
+            indices[0]
+        ):
+
+            if index < 0:
+                continue
+
+            chunk = self.chunks[index].copy()
+
+            text = str(
+                chunk.get("text", "")
+            )
+
+            text_terms = self._tokenize(text)
+
+            if query_terms:
+                overlap = (
+                    len(query_terms & text_terms)
+                    / len(query_terms)
+                )
+            else:
+                overlap = 0.0
+
+            semantic_score = float(score)
+
+            # Mostly semantic retrieval, with a small
+            # lexical signal to preserve important terms.
+            final_score = (
+                0.85 * semantic_score
+                + 0.15 * overlap
+            )
+
+            chunk["score"] = semantic_score
+            chunk["lexical_overlap"] = float(
+                overlap
+            )
+            chunk["rerank_score"] = float(
+                final_score
+            )
+
+            candidates.append(chunk)
+
+        # Highest combined score first.
+        candidates.sort(
+            key=lambda x: x["rerank_score"],
+            reverse=True
+        )
+
+        return candidates[:top_k]
+
+    def save_index(        embeddings = self.embedding_model.encode(
             texts,
             convert_to_numpy=True,
             show_progress_bar=True
