@@ -1,4 +1,4 @@
-
+import time
 import json
 import tempfile
 import time
@@ -82,21 +82,38 @@ def load_embedding_model():
 
 @st.cache_resource
 def load_gemini_client():
+    max_attempts = 3
+
+for attempt in range(max_attempts):
+
     try:
-        from google.colab import userdata
 
-        api_key = userdata.get("GOOGLE_API_KEY")
+        response = client.models.generate_content(
+            model="gemini-3.6-flash",
+            contents=prompt
+        )
 
-    except Exception:
+        if not response or not response.text:
+            return "Gemini returned an empty response."
 
-        import os
+        return response.text.strip()
 
-        api_key = os.environ.get("GOOGLE_API_KEY")
+    except Exception as e:
 
-    if not api_key:
-        return None
+        error_message = str(e)
 
-    return genai.Client(api_key=api_key)
+        if "503" in error_message or "UNAVAILABLE" in error_message:
+
+            if attempt < max_attempts - 1:
+
+                wait_time = 2 ** attempt
+                time.sleep(wait_time)
+                continue
+
+        return (
+            f"Gemini API error: "
+            f"{type(e).__name__}: {error_message}"
+        )
 
 
 # ============================================================
