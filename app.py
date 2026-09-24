@@ -311,27 +311,40 @@ Streamlit Dashboard
 
     st.header("Implemented GenAI Components")
 
-    components = pd.DataFrame({
-        "Component": [
-            "Retrieval-Augmented Generation",
-            "Text Embeddings",
-            "FAISS Vector Search",
-            "Gemini LLM Generation",
-            "Financial Document Processing",
-            "RAG Evaluation",
-            "Interactive Financial Q&A",
-            "Streamlit Visualization"
-        ],
-        "Status": [
-            "Implemented",
-            "Implemented",
-            "Implemented",
-            "Implemented",
-            "Implemented",
-            "Implemented",
-            "Implemented"
-        ]
-    })
+    components = pd.DataFrame([
+        {
+            "Component": "Retrieval-Augmented Generation",
+            "Status": "Implemented"
+        },
+        {
+            "Component": "Text Embeddings",
+            "Status": "Implemented"
+        },
+        {
+            "Component": "FAISS Vector Search",
+            "Status": "Implemented"
+        },
+        {
+            "Component": "Gemini LLM Generation",
+            "Status": "Implemented"
+        },
+        {
+            "Component": "Financial Document Processing",
+            "Status": "Implemented"
+        },
+        {
+            "Component": "RAG Evaluation",
+            "Status": "Implemented"
+        },
+        {
+            "Component": "Interactive Financial Q&A",
+            "Status": "Implemented"
+        },
+        {
+            "Component": "Streamlit Visualization",
+            "Status": "Implemented"
+        }
+    ])
 
     st.dataframe(
         components,
