@@ -1,7 +1,6 @@
 import time
 import json
 import tempfile
-import time
 from pathlib import Path
 
 import pandas as pd
@@ -82,39 +81,20 @@ def load_embedding_model():
 
 @st.cache_resource
 def load_gemini_client():
-    max_attempts = 3
-
-for attempt in range(max_attempts):
 
     try:
 
-        response = client.models.generate_content(
-            model="gemini-3.6-flash",
-            contents=prompt
+        api_key = st.secrets.get("GOOGLE_API_KEY")
+
+        if not api_key:
+            return None
+
+        return genai.Client(
+            api_key=api_key
         )
 
-        if not response or not response.text:
-            return "Gemini returned an empty response."
-
-        return response.text.strip()
-
-    except Exception as e:
-
-        error_message = str(e)
-
-        if "503" in error_message or "UNAVAILABLE" in error_message:
-
-            if attempt < max_attempts - 1:
-
-                wait_time = 2 ** attempt
-                time.sleep(wait_time)
-                continue
-
-        return (
-            f"Gemini API error: "
-            f"{type(e).__name__}: {error_message}"
-        )
-
+    except Exception:
+        return None
 
 # ============================================================
 # GENERATION
@@ -131,9 +111,9 @@ def generate_answer(
     max_context_chars = 12000
     current_chars = 0
 
-    for i, chunk in enumerate(
-        retrieved_chunks,
-        start=1
+        for i, chunk in enumerate(
+            retrieved_chunks,
+            start=1
     ):
 
         chunk_text = chunk.get("text", "")
@@ -200,28 +180,28 @@ ANSWER:
 
     max_attempts = 3
 
-    for attempt in range(max_attempts):
+        for attempt in range(max_attempts):
 
-        try:
+            try:
 
-            response = client.models.generate_content(
-                model="gemini-3.6-flash",
-                contents=prompt
-            )
+                response = client.models.generate_content(
+                    model="gemini-3.6-flash",
+                    contents=prompt
+                )
 
-            if not response or not response.text:
-                return "Gemini returned an empty response."
+                if not response or not response.text:
+                    return "Gemini returned an empty response."
 
-            return response.text.strip()
+                    return response.text.strip()
 
-        except Exception as e:
+            except Exception as e:
 
-            error_message = str(e)
+                error_message = str(e)
 
-            if (
-                "503" in error_message
-                or "UNAVAILABLE" in error_message
-            ):
+                if (
+                    "503" in error_message
+                    or "UNAVAILABLE" in error_message
+                ):
 
                 if attempt < max_attempts - 1:
 
