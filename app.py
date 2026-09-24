@@ -128,8 +128,6 @@ def generate_answer(
 
     context_parts = []
 
-    # Limit the amount of context sent to Gemini.
-    # Retrieved evidence is still available separately in the UI.
     max_context_chars = 12000
     current_chars = 0
 
@@ -200,24 +198,41 @@ RETRIEVED FINANCIAL CONTEXT:
 ANSWER:
 """
 
-    try:
+    max_attempts = 3
 
-        response = client.models.generate_content(
-            model="gemini-3.6-flash",
-            contents=prompt
-        )
+    for attempt in range(max_attempts):
 
-        if not response or not response.text:
-            return "Gemini returned an empty response."
+        try:
 
-        return response.text.strip()
+            response = client.models.generate_content(
+                model="gemini-3.6-flash",
+                contents=prompt
+            )
 
-    except Exception as e:
+            if not response or not response.text:
+                return "Gemini returned an empty response."
 
-        return (
-            f"Gemini API error: {type(e).__name__}: {str(e)}"
-        )
+            return response.text.strip()
 
+        except Exception as e:
+
+            error_message = str(e)
+
+            if (
+                "503" in error_message
+                or "UNAVAILABLE" in error_message
+            ):
+
+                if attempt < max_attempts - 1:
+
+                    wait_time = 2 ** attempt
+                    time.sleep(wait_time)
+                    continue
+
+            return (
+                f"Gemini API error: "
+                f"{type(e).__name__}: {error_message}"
+            )
 
 # ============================================================
 # SIDEBAR
